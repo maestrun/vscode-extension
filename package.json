@@ -1,0 +1,375 @@
+{
+  "name": "maestrun-vscode",
+  "displayName": "Maestrun",
+  "description": "Manage Maestrun workflows, planned tasks, execution, and agent conversations directly in VS Code.",
+  "version": "1.0.0",
+  "publisher": "maestrun",
+  "license": "SUL-1.0",
+  "engines": {
+    "vscode": "^1.106.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "workspaceContains:**/.maestrun/config.json",
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    },
+    "virtualWorkspaces": {
+      "supported": false
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -p . --watch",
+    "check": "tsc -p . --noEmit",
+    "test": "npm run build && node --test tests/*.test.cjs",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package",
+    "test:host": "npm run build && node tests/run-host.cjs"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "maestrun-launcher",
+          "title": "Maestrun",
+          "icon": "media/maestrun.svg"
+        }
+      ],
+      "secondarySidebar": [
+        {
+          "id": "maestrun-workspace",
+          "title": "Maestrun Tasks",
+          "icon": "media/maestrun.svg"
+        }
+      ]
+    },
+    "views": {
+      "maestrun-workspace": [
+        {
+          "id": "maestrun.projects",
+          "name": "Projects",
+          "initialSize": 25
+        },
+        {
+          "id": "maestrun.dashboardView",
+          "name": "Tasks",
+          "type": "webview",
+          "initialSize": 75
+        }
+      ],
+      "maestrun-launcher": [
+        {
+          "id": "maestrun.launcher",
+          "name": "Maestrun"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "maestrun.refresh",
+        "title": "Refresh tasks",
+        "category": "Maestrun",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "maestrun.selectProject",
+        "title": "Select project",
+        "category": "Maestrun",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "maestrun.start",
+        "title": "Set up workflow",
+        "category": "Maestrun",
+        "icon": "$(add)"
+      },
+      {
+        "command": "maestrun.configure",
+        "title": "Configure workflow",
+        "category": "Maestrun"
+      },
+      {
+        "command": "maestrun.plan",
+        "title": "Generate plan",
+        "category": "Maestrun"
+      },
+      {
+        "command": "maestrun.run",
+        "title": "Run or resume tasks",
+        "category": "Maestrun",
+        "icon": "$(play)"
+      },
+      {
+        "command": "maestrun.openPlan",
+        "title": "Edit plan",
+        "category": "Maestrun"
+      },
+      {
+        "command": "maestrun.openConfig",
+        "title": "Open configuration file",
+        "category": "Maestrun",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "maestrun.openLog",
+        "title": "View execution log",
+        "category": "Maestrun"
+      },
+      {
+        "command": "maestrun.showTask",
+        "title": "View task details",
+        "category": "Maestrun"
+      },
+      {
+        "command": "maestrun.sendMessage",
+        "title": "Send task instructions",
+        "category": "Maestrun",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "maestrun.dashboard",
+        "title": "Open task dashboard",
+        "category": "Maestrun",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "maestrun.cancel",
+        "title": "Cancel execution or workflow",
+        "category": "Maestrun",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "maestrun.openSidebar",
+        "title": "Open Maestrun",
+        "category": "Maestrun",
+        "icon": {
+          "light": "media/maestrun.svg",
+          "dark": "media/maestrun-dark.svg"
+        }
+      },
+      {
+        "command": "maestrun.openEditor",
+        "title": "Open dashboard in editor",
+        "category": "Maestrun",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "maestrun.choosePosition",
+        "title": "Choose window position",
+        "category": "Maestrun",
+        "icon": "$(layout)"
+      },
+      {
+        "command": "maestrun.openProjectDashboard",
+        "title": "Open project dashboard",
+        "category": "Maestrun",
+        "icon": "$(new-window)"
+      },
+      {
+        "command": "maestrun.selectSidebarProject",
+        "title": "Show project tasks",
+        "category": "Maestrun"
+      },
+      {
+        "command": "maestrun.allFlowcharts",
+        "title": "View all flowcharts",
+        "category": "Maestrun",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "maestrun.answerInput",
+        "title": "Answer pending question",
+        "category": "Maestrun",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "maestrun.sample",
+        "title": "Run example",
+        "category": "Maestrun",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "maestrun.removeProjectConfig",
+        "title": "Remove workflow configuration",
+        "category": "Maestrun",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "maestrun.deleteExample",
+        "title": "Delete example",
+        "category": "Maestrun",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "maestrun.removeProject",
+        "title": "Delete project configuration or example",
+        "category": "Maestrun",
+        "icon": "$(trash)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "maestrun.openEditor",
+          "when": "view == maestrun.dashboardView",
+          "group": "navigation@0"
+        },
+        {
+          "command": "maestrun.selectProject",
+          "when": "view == maestrun.dashboardView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "maestrun.refresh",
+          "when": "view == maestrun.dashboardView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "maestrun.choosePosition",
+          "when": "view == maestrun.dashboardView"
+        },
+        {
+          "command": "maestrun.openProjectDashboard",
+          "when": "view == maestrun.dashboardView"
+        },
+        {
+          "command": "maestrun.refresh",
+          "when": "view == maestrun.projects",
+          "group": "navigation@1"
+        },
+        {
+          "command": "maestrun.allFlowcharts",
+          "when": "view == maestrun.projects",
+          "group": "navigation@0"
+        },
+        {
+          "command": "maestrun.sample",
+          "when": "view == maestrun.projects",
+          "group": "navigation@2"
+        },
+        {
+          "command": "maestrun.openSidebar",
+          "when": "view == maestrun.launcher",
+          "group": "navigation@0"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "maestrun.refresh",
+          "when": "view == maestrun.projects && viewItem =~ /^maestrun(Project|Example)$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "maestrun.removeProject",
+          "when": "view == maestrun.projects && viewItem =~ /^maestrun(Project|Example)$/",
+          "group": "inline@2"
+        },
+        {
+          "command": "maestrun.removeProjectConfig",
+          "when": "view == maestrun.projects && viewItem =~ /^maestrun(Project|Example)$/",
+          "group": "maestrun@1"
+        },
+        {
+          "command": "maestrun.deleteExample",
+          "when": "view == maestrun.projects && viewItem == maestrunExample",
+          "group": "maestrun@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "maestrun.showTask",
+          "when": "false"
+        },
+        {
+          "command": "maestrun.selectSidebarProject",
+          "when": "false"
+        },
+        {
+          "command": "maestrun.removeProjectConfig",
+          "when": "false"
+        },
+        {
+          "command": "maestrun.deleteExample",
+          "when": "false"
+        },
+        {
+          "command": "maestrun.removeProject",
+          "when": "false"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "maestrun.openProjectDashboard",
+          "when": "explorerResourceIsFolder && resourceScheme == file",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "maestrun.openSidebar",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Maestrun",
+      "properties": {
+        "maestrun.executable": {
+          "type": "string",
+          "default": "maestrun",
+          "scope": "machine",
+          "description": "Installed Maestrun executable on PATH, or absolute path to its dist/main.js. No arguments."
+        },
+        "maestrun.tasksFile": {
+          "type": "string",
+          "default": "plan.md",
+          "scope": "resource",
+          "description": "Task plan path, relative to the selected project folder. Generate plan creates and selects plan.md."
+        },
+        "maestrun.nodeExecutable": {
+          "type": "string",
+          "default": "node",
+          "scope": "machine",
+          "description": "Node.js executable used by the Maestrun background service. Use a Node.js version supported by your Maestrun installation."
+        }
+      }
+    },
+    "viewsWelcome": [
+      {
+        "view": "maestrun.projects",
+        "contents": "Projects containing .maestrun/config.json in this workspace and its subfolders appear here. Select one to show its tasks below.\n[Refresh projects](command:maestrun.refresh)\n[Select a folder to set up](command:maestrun.selectProject)"
+      },
+      {
+        "view": "maestrun.launcher",
+        "contents": "Open Maestrun wherever you placed its views.\n[Open Maestrun](command:maestrun.openSidebar)\n[Open in editor](command:maestrun.openEditor)\n[Choose window position](command:maestrun.choosePosition)\n[Run example](command:maestrun.sample)\n[All flowcharts](command:maestrun.allFlowcharts)"
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "1.95.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.0.0",
+    "playwright-core": "^1.64.0",
+    "typescript": "^5.7.0"
+  },
+  "icon": "media/maestrun.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maestrun/vscode-extension.git"
+  },
+  "homepage": "https://maestrun.com",
+  "bugs": {
+    "url": "https://github.com/maestrun/vscode-extension/issues"
+  }
+}
