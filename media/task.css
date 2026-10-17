@@ -270,6 +270,14 @@ body.vscode-high-contrast progress::-webkit-progress-bar,body.vscode-high-contra
 .flow-layout.with-step { grid-template-columns: minmax(0, 1fr); }
 #project-flow { min-width: 0; }
 .step-inspector > button { align-self: flex-end; margin: 12px; }
+.step-metadata { grid-area: metadata; min-width: 0; }
+.step-metadata .step-table { min-width: 500px; }
+.editor-dashboard .step-inspector .detail-body,.all-flows .step-inspector .detail-body { padding: 0 16px 16px; max-height: 360px; overflow: auto; }
+.step-inspector .detail-section { margin-top: 12px; }
+.detail-data-table { table-layout: fixed; margin-top: 8px; }
+.detail-data-table th,.detail-data-table td { padding: 5px 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.detail-data-table th { width: 30%; }
+.step-logs > summary { cursor: pointer; color: var(--muted); }
 .execution-log { padding: 20px; }
 .execution-log pre { font-family: var(--vscode-editor-font-family); font-size: 12px; }
 @media (max-width: 760px) { .flow-layout.with-step { grid-template-columns: minmax(0, 1fr); } .editor-views { flex-wrap: wrap; padding: 10px 12px; } }
@@ -281,7 +289,7 @@ body.vscode-high-contrast progress::-webkit-progress-bar,body.vscode-high-contra
 .all-flow-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; margin-top: 20px; }
 .flow-card { min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: 6px; }
 .flow-card > h3 { margin-bottom: 20px; overflow-wrap: anywhere; }
-.selected-flow { grid-column: 1 / -1; border-color: var(--vscode-focusBorder); }
+.selected-flow { grid-column: 1 / -1; }
 .all-flows .flow-layout > div { min-width: 0; }
 #workflow-table .drag-handle { cursor: grab; font-size: 18px; }
 #workflow-table .drag-handle:disabled { cursor: default; }

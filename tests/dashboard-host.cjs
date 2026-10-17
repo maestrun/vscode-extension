@@ -55,6 +55,8 @@ async function checkDashboard(frame, folder) {
   await frame.page().screenshot({path:resolve(__dirname,'../.vscode-test/flow-zigzag.png')});
   await frame.locator('.flow-node[data-step-id=testing]').click();
   await frame.locator('#detail-title').filter({hasText:'Tests'}).waitFor();
+  assert.equal(await frame.locator('.step-logs').getAttribute('open'),null,'step logs start collapsed');
+  await frame.locator('.step-logs > summary').click();
   await frame.getByText('Live output from the testing step',{exact:true}).waitFor();
   assert.equal(await frame.locator('.flow-node').count(),7,'chart remains available above the step inspector');
   conversation.messages.push({id:'m2',role:'model',text:'<img src=x onerror=alert(1)> Keep logs as text.'});

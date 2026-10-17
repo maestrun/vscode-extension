@@ -5,7 +5,8 @@
     const style = getComputedStyle(chart);
     const gap = parseFloat(style.columnGap);
     const width = chart.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    const columns = Math.max(1, Math.min(stages.length, Math.floor((width + gap) / ((parseFloat(style.getPropertyValue("--flow-node-min")) || 230) + gap))));
+    const nested = chart.closest(".nested-flow");
+    const columns = nested ? (nested.dataset.direction === "vertical" ? 1 : stages.length) : Math.max(1, Math.min(stages.length, Math.floor((width + gap) / ((parseFloat(style.getPropertyValue("--flow-node-min")) || 230) + gap))));
     chart.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
     stages.forEach((stage, index) => {
       const row = Math.floor(index / columns);
@@ -31,6 +32,7 @@
     resize.disconnect();
     for (const chart of content.querySelectorAll('.flowchart')) { layout(chart); resize.observe(chart); }
   };
+  window.addEventListener('nested-flow-change', connect);
   new MutationObserver(connect).observe(content, { childList: true });
   connect();
 })();

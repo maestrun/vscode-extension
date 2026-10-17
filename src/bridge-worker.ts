@@ -16,7 +16,8 @@ async function main(): Promise<void> {
     const result = await performAction(runtime, action, { cwd: process.cwd(), tasksPath, taskId, requestId, signal: controller.signal, ui });
     process.send({ type: "result", result });
   } catch (error) {
-    process.send({ type: "failure", message: error instanceof Error ? error.message : String(error),
+    const cancelled = await runtime.call("shared/errors", "isCancellation", [error]);
+    process.send({ type: "failure", cancelled: cancelled === true, message: error instanceof Error ? error.message : String(error),
       nextAction: isRecord(error) && typeof error.nextAction === "string" ? error.nextAction : undefined });
   } finally { process.disconnect?.(); }
 }

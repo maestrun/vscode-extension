@@ -1,3 +1,4 @@
+import { hasTaskHierarchy, nestedFlow } from "./nested-flow";
 import * as vscode from "vscode";
 import { escapeHtml as e, errorHtml } from "./html";
 import { isRecord, Report } from "./report";
@@ -73,7 +74,7 @@ export class AllFlows implements vscode.Disposable {
       ${entries.map(({ project, report, error }) => `<section class="flow-project" data-project-path="${e(project.path)}"><header class="flow-project-header"><h2 title="${e(project.name)}">${e(project.name)}</h2><p class="project-path" title="${e(project.path)}">${e(project.path)}</p></header>
         ${error ? `<p class="error-banner" role="alert">${errorHtml(error)}</p>` : ""}
         ${!report?.tasks.length && !error ? '<p class="muted">No tasks yet. Generate a plan to preview this workflow.</p>' : ""}
-        <div class="all-flow-grid">${(report?.tasks ?? []).map((task) => {
+        <div class="all-flow-grid">${hasTaskHierarchy(report) && report ? nestedFlow(report, project.path, this.selected?.path === project.path ? { task: this.selected.task, step: this.selected.step } : {}) + (this.selected?.path === project.path && detail ? `<section class="inspector step-inspector" data-task-id="${e(this.selected.task)}"><button data-action="closeStep">Close step details</button>${detail}</section>` : "") : (report?.tasks ?? []).map((task) => {
           const active = Boolean(detail && this.selected?.path === project.path && this.selected.task === task.id);
           return `<article class="flow-card ${active ? "selected-flow" : ""}" data-task-id="${e(task.id)}"><h3>${e(task.id)} · ${e(task.title)}</h3><div class="flow-layout ${active ? "with-step" : ""}"><div>${flowContent(task, active ? this.selected?.step : undefined)}</div>
             ${active ? `<section class="inspector step-inspector" aria-label="Step details and logs"><button class="text-button" data-action="closeStep">Close step details</button>${detail}</section>` : ""}</div></article>`;

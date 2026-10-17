@@ -36,7 +36,7 @@ test('configuration questions and cancellation travel through the extension brid
     return { value: 'reuse' };
   } });
   assert.ok(prompted);
-  await assert.rejects(invoke('configure', { onPrompt: async () => ({ navigation: 'cancel' }) }), /Cancelled/);
+  await assert.rejects(invoke('configure', { onPrompt: async () => ({ navigation: 'cancel' }) }), { name: 'AbortError', message: 'Cancelled' });
   assert.deepEqual(JSON.parse(await readFile(join(cwd, '.maestrun/config.json'), 'utf8')), JSON.parse(before));
 });
 
@@ -74,7 +74,7 @@ test('rejects changed task definitions and malformed plans without replacing pro
   await waitFor(async () => (await json(join(cwd, '.maestrun/session.json')))?.status === 'completed');
   const saved = await json(join(cwd, '.maestrun/run.json'));
   const plan = await readFile(join(cwd, 'plan.md'), 'utf8');
-  await writeFile(join(cwd, 'plan.md'), plan.replace('First task', 'Changed task'));
+  await writeFile(join(cwd, 'plan.md'), plan.replace('### Task task-1: First task', '### Task task-1: Changed task'));
   const merged = mergePlan(parseReport(await invoke('preview')), parseReport(saved));
   assert.equal(merged.tasks[0].status, 'pending');
   assert.match(merged.tasks[0].error, /differs/);
@@ -101,4 +101,16 @@ test('missing Maestrun explains installation without confusing a missing Node ex
     assert.doesNotMatch(error.message, /maestrun\.com/);
     return true;
   });
+});
+
+
+test('bridge separates cancellation from prompt failures and handles pre-cancelled operations', options, async (t) => {
+  const { invoke } = await fixture(t);
+  await assert.rejects(invoke('configure', { signal: AbortSignal.abort() }), { name: 'AbortError' });
+  const controller = new AbortController();
+  await assert.rejects(invoke('configure', { signal: controller.signal, onPrompt: async () => {
+    controller.abort(); return { navigation: 'cancel' };
+  } }), { name: 'AbortError' });
+  await assert.rejects(invoke('configure', { onPrompt: async () => { throw new Error('Prompt unavailable'); } }),
+    { name: 'Error', message: 'Prompt unavailable' });
 });

@@ -13,6 +13,7 @@ import type { WorkflowSurface } from "./workflow-view";
 type Mode = "editor" | "sidebar";
 export class Details implements vscode.Disposable, vscode.WebviewViewProvider {
   private panel?: vscode.WebviewPanel;
+  private restoreDashboard?: () => void;
   private view?: vscode.WebviewView;
   private selection?: TaskNode;
   private content = "";
@@ -20,6 +21,7 @@ export class Details implements vscode.Disposable, vscode.WebviewViewProvider {
   private report?: Report;
   private projectPath = "";
   private mode: Mode;
+  private flowDetailsClosed = false;
   private editorView: EditorView = "tasks";
 
   constructor(private readonly extensionUri: vscode.Uri,
@@ -50,6 +52,7 @@ export class Details implements vscode.Disposable, vscode.WebviewViewProvider {
   }
 
   async show(node: TaskNode, report?: Report): Promise<void> {
+    this.flowDetailsClosed = false;
     this.selection = node; this.projectPath = node.projectPath;
     await this.reveal();
     await this.update(report, node.projectPath);
@@ -64,6 +67,7 @@ export class Details implements vscode.Disposable, vscode.WebviewViewProvider {
   }
 
   async showView(view: EditorView): Promise<void> {
+    this.flowDetailsClosed = false;
     this.editorView = view;
     if (this.selection) this.selection = { ...this.selection, step: undefined };
     await this.workspaceState.update(this.key("editor.view"), view);
@@ -112,7 +116,28 @@ export class Details implements vscode.Disposable, vscode.WebviewViewProvider {
     this.options.onActive?.();
   }
 
-  async workflowSurface(title: string): Promise<WorkflowSurface | undefined> {
+  async workflowSurface(title: string, reuse = false): Promise<WorkflowSurface | undefined> {
+    if (reuse && this.options.projectPath) {
+      this.restoreDashboard?.();
+      await this.reveal();
+      const panel = this.panel!;
+      panel.title = `Maestrun: ${title}`;
+      const closed = new vscode.EventEmitter<void>();
+      const restore = (disposed = false): void => {
+        if (this.restoreDashboard !== restore) return;
+        this.restoreDashboard = undefined;
+        listener.dispose();
+        closed.fire(); closed.dispose();
+        if (!disposed) {
+          panel.title = this.title;
+          panel.webview.html = webviewShell(panel.webview, this.extensionUri, "task.js");
+        }
+      };
+      const listener = panel.onDidDispose(() => restore(true));
+      this.restoreDashboard = restore;
+      return { webview: panel.webview, onDidDispose: closed.event,
+        reveal: () => panel.reveal(), dispose: () => restore() };
+    }
     const panel = vscode.window.createWebviewPanel("maestrun.workflow", `Maestrun: ${title}`,
       this.panel?.viewColumn ?? this.workspaceState.get(this.key("dashboard.editorColumn"), vscode.ViewColumn.Two),
       { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, "media")] });
@@ -122,6 +147,7 @@ export class Details implements vscode.Disposable, vscode.WebviewViewProvider {
 
   private connect(webview: vscode.Webview, mode: Mode): vscode.Disposable {
     return webview.onDidReceiveMessage((value: unknown) => {
+      if (this.restoreDashboard && mode === "editor") return;
       if (!isRecord(value) || typeof value.action !== "string") return;
       if (value.action === "ready") { void webview.postMessage({ html: this.content,
         revealTask: Boolean(this.selection), focusTask: false }); return; }
@@ -130,6 +156,12 @@ export class Details implements vscode.Disposable, vscode.WebviewViewProvider {
       void this.workspaceState.update(this.key("dashboard.mode"), mode);
       if (this.options.projectPath && ["showFlowchart", "showDetailedTasks"].includes(value.action)) {
         void this.showView(value.action === "showFlowchart" ? "flow" : "tasks").catch((error: unknown) => showError(error, `${value.action}: ${this.projectPath}`));
+        return;
+      }
+      if (value.action === "closeStep") {
+        this.flowDetailsClosed = true;
+        if (this.selection) this.selection = { ...this.selection, step: undefined };
+        void this.update(this.report, this.projectPath).catch((error: unknown) => showError(error, `closeStep: ${this.projectPath}`));
         return;
       }
       const actions = ["allFlowcharts", "sendMessage", "answerInput", "openPlan", "openLog", "start", "configure", "sample", "plan", "run", "cancel", "refresh", "showTask", "showStep", "openConfig", "selectProject", "openSidebar", "openEditor", "choosePosition", "openProjectDashboard"];
@@ -145,7 +177,7 @@ export class Details implements vscode.Disposable, vscode.WebviewViewProvider {
   }
 
   async update(report: Report | undefined, projectPath: string, error?: string): Promise<void> {
-    if (this.projectPath !== projectPath) this.selection = undefined;
+    if (this.projectPath !== projectPath) { this.selection = undefined; this.flowDetailsClosed = false; }
     this.report = report; this.projectPath = projectPath;
     const generation = ++this.generation;
     if (this.options.projectPath && this.editorView === "logs") {
@@ -160,7 +192,7 @@ export class Details implements vscode.Disposable, vscode.WebviewViewProvider {
     const node = this.selection;
     const task = report?.tasks.find((task) => task.id === node?.task.id);
     if (!task || !node) { this.selection = undefined;
-      if (this.panel) this.panel.title = this.title;
+      if (this.panel && !this.restoreDashboard) this.panel.title = this.title;
       this.publish(dashboardContent(report, projectPath, error, undefined, undefined, !this.options.projectPath, this.editorView)); return; }
     const step = node.step ? displaySteps(task).find((step) => step.id === node.step?.id) : undefined;
     if (!this.options.projectPath) {
@@ -169,15 +201,15 @@ export class Details implements vscode.Disposable, vscode.WebviewViewProvider {
     }
     const conversation = await taskConversation(projectPath, task, step);
     if (generation !== this.generation) return;
-    if (this.panel) this.panel.title = `${this.title} · ${task.title}`;
+    if (this.panel && !this.restoreDashboard) this.panel.title = `${this.title} · ${task.title}`;
     this.publish(dashboardContent(report, projectPath, error,
-      taskContent({ task, step, ...conversation, project: projectPath }), task.id, false, this.editorView, step?.id));
+      this.editorView === "flow" && this.flowDetailsClosed ? undefined : taskContent({ task, step, ...conversation, project: projectPath }), task.id, false, this.editorView, step?.id));
   }
 
   private publish(html: string): void {
     if (html === this.content) return;
     this.content = html;
-    void this.panel?.webview.postMessage({ html });
+    if (!this.restoreDashboard) void this.panel?.webview.postMessage({ html });
     void this.view?.webview.postMessage({ html });
   }
 

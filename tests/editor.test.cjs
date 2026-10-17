@@ -7,12 +7,30 @@ const {randomUUID} = require('node:crypto');
 const {editorContent} = require('../dist/editor-content');
 const {executionLog, taskConversation, workerLog} = require('../dist/execution-log');
 const {discoverCatalog, validModelSelection} = require('../dist/model-catalog');
+const {taskContent} = require('../dist/task-content');
 const task = {id:'one',title:'Example',status:'running',step:'testing',model:'test-model',effort:'high',completedSteps:1,totalSteps:2,
  tokenUsage:{inputTokens:1200,outputTokens:40}, tokenUsageIncomplete:true, steps:[
  {id:'implementation',title:'Implementation',status:'completed',summary:'Implementation result'},
  {id:'testing',title:'Tests',status:'running',summary:'Test result',tokenUsage:{inputTokens:200,outputTokens:4}}
  ]};
 const report={version:1,startedAt:'',tasks:[task]};
+test('step details format structured results and logs as escaped tables with logs collapsed',()=>{
+ const result={status:'completed',summary:'Verified <script>alert(1)</script>',tokenUsage:{inputTokens:0},checks:[{name:'Unit tests',passed:false}],warnings:[]};
+ const step={...task.steps[0],summary:JSON.stringify(result)};
+ const html=taskContent({task,step,project:'/project',conversation:{active:false,messages:[
+  {id:'1',role:'model',text:'```json\n'+JSON.stringify(result)+'\n```'},
+  {id:'2',role:'model',text:'Plain output <img src=x>'}
+ ]}});
+ assert.match(html,/<th scope="col">Model<\/th>/);
+ assert.match(html,/<th scope="row">Token Usage \/ input Tokens<\/th><td>0<\/td>/i);
+ assert.match(html,/<th scope="row">Checks \/ 1 \/ passed<\/th><td>false<\/td>/);
+ assert.match(html,/<th scope="row">Warnings<\/th><td>None<\/td>/);
+ assert.match(html,/<details class="detail-section step-logs"[^>]*><summary>Step logs \(2\)<\/summary>/);
+ assert.doesNotMatch(html,/<details[^>]*\bopen\b/);
+ assert.doesNotMatch(html,/<script>|<img|&quot;status&quot;|```json/);
+ assert.match(html,/<pre>Plain output &lt;img src=x&gt;<\/pre>/);
+ assert.match(html,/Verified &lt;script&gt;/);
+});
 test('editor tasks and flow are separate views with CLI fields and a step inspector only after selection',()=>{
  const table=editorContent(report,'/project',undefined,'Details','one','tasks');
  for(const label of ['Tokens in / out','Stage','Status','Steps','1,200 / 40 *','test-model','Tests'])assert.ok(table.includes(label));

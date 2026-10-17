@@ -70,7 +70,7 @@ export class WorkflowView implements vscode.Disposable {
     this.panel.webview.html = webviewShell(this.panel.webview, extension, "workflow.js", Boolean(surface?.sidebar));
     const messages = this.panel.webview.onDidReceiveMessage((value: unknown) => this.receive(value));
     this.panel.onDidDispose(() => {
-      messages.dispose(); this.closed = true; this.pending?.({ navigation: "cancel" }); this.pending = undefined; this.cancel();
+      messages.dispose(); this.closed = true; this.pending?.({ navigation: "cancel" }); this.pending = undefined; if (!this.outcome) this.cancel();
     });
   }
 

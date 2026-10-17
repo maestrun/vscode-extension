@@ -4,7 +4,7 @@ import { Runtime } from "./runtime";
 
 export type Choice = { name: string; value: string; disabled?: string };
 export type WorkflowTable = { stages: { id: string; executor: string; model: string; effort?: string; file?: string }[];
-  execution?: { mode: string; concurrency: number; maxRepairs?: number; background?: boolean } };
+  execution?: { mode: string; concurrency: number; maxRepairs?: number; background?: boolean; orchestrator?: "plan" | "agent" } };
 export type Prompt = { id: number; kind: string; title: string; context?: string; choices?: Choice[];
   initial?: string | boolean | readonly string[]; table?: WorkflowTable; catalog?: ExecutorCatalog[]; error?: string };
 
@@ -15,6 +15,7 @@ export function isWorkflowTable(value: unknown): value is WorkflowTable {
     && (value.execution === undefined || (isRecord(value.execution) && typeof value.execution.mode === "string"
       && Number.isSafeInteger(value.execution.concurrency)
       && (value.execution.maxRepairs === undefined || Number.isSafeInteger(value.execution.maxRepairs))
+      && (value.execution.orchestrator === undefined || ["plan", "agent"].includes(String(value.execution.orchestrator)))
       && (value.execution.background === undefined || typeof value.execution.background === "boolean")));
 }
 

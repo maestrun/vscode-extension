@@ -34,6 +34,14 @@ async function checkTaskInput(browser, folder, frameWith) {
     await dashboard.getByRole('button', { name: 'Answer question', exact: true }).click();
     let form = await frameWith(browser, '#prompt-form .input-context');
     assert.ok((await form.locator('.input-context').innerText()).includes(request.question));
+    await form.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await form.locator('#outcome').filter({ hasText: 'Operation cancelled.' }).waitFor();
+    assert.equal((await readReport(cwd)).tasks[0].status, 'on_hold');
+    assert.equal(await form.page().getByText('Maestrun: Cancelled', { exact: true }).count(), 0);
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    dashboard = await frameWith(browser, '#project-flow');
+    await dashboard.getByRole('button', { name: 'Answer question', exact: true }).click();
+    form = await frameWith(browser, '#prompt-form .input-context');
     await form.getByRole('button', { name: 'Send answer', exact: true }).click();
     await form.locator('#validation').filter({ hasText: '1–32000' }).waitFor();
     await form.locator('#answer').fill('compact\nPreserve existing files.');
@@ -42,6 +50,7 @@ async function checkTaskInput(browser, folder, frameWith) {
     await waitFor(async () => (await readReport(cwd))?.tasks[0].inputRequests[0].answer === 'compact\nPreserve existing files.');
     dashboard = await frameWith(browser, '#project-flow');
     await dashboard.getByRole('heading', { name: 'Your answer', exact: true }).waitFor();
+    assert.equal(await dashboard.page().getByText('Maestrun: Cancelled', { exact: true }).count(), 0);
     assert.equal(await dashboard.getByRole('button', { name: 'Answer question', exact: true }).count(), 0);
     await dashboard.getByRole('button', { name: 'Detailed tasks', exact: true }).click();
     await dashboard.locator('#no-matches').waitFor();
