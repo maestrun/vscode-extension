@@ -290,6 +290,10 @@ export class Controller implements vscode.Disposable {
     if (!folder) throw new Error("Open a project folder in VS Code.");
     if (source && !await projectInWorkspace(folder.uri.fsPath, (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath)))
       throw new Error("This project's folder is no longer in the workspace.");
+    if (action === "run" && (!source || source !== this.dashboards.get(folder.uri.toString()))) {
+      await this.selectProject(true, folder.uri);
+      return this.execute(action, value, this.dashboards.get(folder.uri.toString()));
+    }
     if (action === "openLog") {
       if (source) return source.details.showView("logs");
       await this.selectProject(true, folder.uri);
@@ -313,7 +317,7 @@ export class Controller implements vscode.Disposable {
       return details.showDashboard(report, folder.uri.fsPath, action === "openEditor" ? "editor" : undefined);
     if (WORKFLOW_ACTIONS.includes(action)) {
       let result: unknown;
-      try { result = await this.backend.execute(folder, action, (title) => details.workflowSurface(title)); }
+      try { result = await this.backend.execute(folder, action, (title) => details.workflowSurface(title, action === "run")); }
       finally { if (action === "sample") this.projectsChanged = true; await this.refresh(); }
       if (action === "sample" && isRecord(result) && typeof result.samplePath === "string")
         return this.selectProject(true, vscode.Uri.file(result.samplePath));

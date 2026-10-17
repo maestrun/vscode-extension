@@ -8,12 +8,13 @@ export type Step = {
 };
 export type InputRequest = { id: string; stage: string; question: string; summary: string; answer?: string };
 export type Task = Step & {
-  inputRequests?: InputRequest[]; plannedStages?: string[];
+  parentId?: string; inputRequests?: InputRequest[]; plannedStages?: string[];
   integration?: "pending" | "running"; worktree?: { integrated?: boolean };
   completedSteps: number; totalSteps: number; steps?: Step[]; step?: string;
   executor?: string; error?: string; definition?: string; instructions?: string; dependsOn?: string[]; target?: string;
 };
-export type Report = { version: 1; startedAt: string; finishedAt?: string; tasks: Task[] };
+export type Orchestration = { strategy: "plan" | "agent"; phase: "coordinate" | "execute" | "complete"; round: number; source: unknown[]; tasks: unknown[] };
+export type Report = { orchestration?: Orchestration; version: 1; startedAt: string; finishedAt?: string; tasks: Task[] };
 
 export const STATUS: Record<Status, { label: string; icon: string; color: string }> = {
   on_hold: { label: "On hold", icon: "debug-pause", color: "charts.orange" },
@@ -88,7 +89,7 @@ function isTask(value: unknown): value is Task {
     || !record.plannedStages.every((id) => typeof id === "string"))) return false;
   const validCounts = [record.completedSteps, record.totalSteps]
     .every((count) => typeof count === "number" && Number.isSafeInteger(count) && count >= 0);
-  return validCounts && optionalStrings(value, ["step", "executor", "error", "definition", "instructions", "target"])
+  return validCounts && optionalStrings(value, ["parentId", "step", "executor", "error", "definition", "instructions", "target"])
     && (record.dependsOn === undefined || (Array.isArray(record.dependsOn) && record.dependsOn.every((id) => typeof id === "string")))
     && (record.steps === undefined || (Array.isArray(record.steps) && record.steps.every(isStep)));
 }
@@ -99,6 +100,30 @@ export function parseReport(value: unknown): Report {
     || !value.tasks.every(isTask)) throw new Error("Invalid or unsupported .maestrun/run.json report.");
   if (new Set(value.tasks.map((task) => task.id)).size !== value.tasks.length)
     throw new Error("The report contains duplicate task IDs.");
+  validateHierarchy(value.tasks);
+  if (value.orchestration !== undefined && !isOrchestration(value.orchestration))
+    throw new Error("Invalid orchestration metadata.");
   return { version: 1, startedAt: value.startedAt, tasks: value.tasks,
+    ...(isOrchestration(value.orchestration) ? { orchestration: value.orchestration } : {}),
     ...(typeof value.finishedAt === "string" ? { finishedAt: value.finishedAt } : {}) };
+}
+
+function isOrchestration(value: unknown): value is Orchestration {
+  return isRecord(value) && ["plan", "agent"].includes(String(value.strategy))
+    && ["coordinate", "execute", "complete"].includes(String(value.phase))
+    && Number.isSafeInteger(value.round) && Number(value.round) > 0
+    && Array.isArray(value.source) && Array.isArray(value.tasks);
+}
+
+function validateHierarchy(tasks: Task[]): void {
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  for (const task of tasks) {
+    const seen = new Set([task.id]);
+    let parent = task.parentId;
+    while (parent !== undefined) {
+      if (!byId.has(parent) || seen.has(parent)) throw new Error("Invalid task parent or cyclic hierarchy.");
+      seen.add(parent);
+      parent = byId.get(parent)?.parentId;
+    }
+  }
 }

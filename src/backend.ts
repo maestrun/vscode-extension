@@ -70,9 +70,13 @@ export class Backend implements vscode.Disposable {
         onPrompt: (prompt) => current.ask(parsePrompt(prompt)) });
       if (action === "plan" && this.tasksFile(folder) !== "plan.md")
         await this.state.update(`tasksFile:${key}`, { source: tasksFile(folder), path: "plan.md" });
-      if (action === "answerInput" || action === "sample") { view.dispose(); this.views.delete(view); return result; }
+      if (action === "answerInput" || action === "sample") { view.finish("Operation completed."); view.dispose(); this.views.delete(view); return result; }
       view.finish(action === "run" ? "Execution is running in the background. Follow tasks in the dashboard." : "Operation completed.");
-    } catch (error) { view?.finish(String(error)); throw error; }
+      if (action === "run") { view.dispose(); this.views.delete(view); }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") { view?.finish("Operation cancelled."); return; }
+      view?.finish(String(error)); throw error;
+    }
     finally { this.operations.delete(key); this.invalidate(); }
   }
 

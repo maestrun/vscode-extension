@@ -10,6 +10,7 @@ const { checkRemoval } = require('./removal-host.cjs');
 const { checkProjects } = require('./projects-host.cjs');
 const { checkSamples } = require('./samples-host.cjs');
 const { checkTaskInput } = require('./task-input-host.cjs');
+const { checkNestedFlow } = require('./nested-flow-host.cjs');
 const { checkDashboard } = require('./dashboard-host.cjs');
 const { checkDashboards } = require('./dashboards-host.cjs');
 const { checkSidebarTasks } = require('./sidebar-tasks-host.cjs');
@@ -41,7 +42,7 @@ async function run() {
   await extension.activate();
   await vscode.commands.executeCommand('maestrun.refresh');
   const browser = await chromium.connectOverCDP(`http://127.0.0.1:${process.env.MAESTRUN_TEST_CDP}`);
-  try { await checkNavigation(browser); await checkRemoval(browser, folder); await vscode.commands.executeCommand('maestrun.openEditor'); await checkInterface(browser, folder); await checkMissingCli(browser, folder); }
+  try { await checkNavigation(browser); await checkRemoval(browser, folder); await vscode.commands.executeCommand('maestrun.openEditor'); await checkInterface(browser, folder); await checkNestedFlow(browser, folder); await checkMissingCli(browser, folder); }
   catch (error) {
     for (const page of browser.contexts().flatMap((context) => context.pages())) {
       console.log('Page:', page.url(), 'Frames:', page.frames().map((frame) => frame.url()));
@@ -182,11 +183,26 @@ async function checkPosition(browser) {
 }
 
 async function checkRun(browser, folder) {
+  await vscode.commands.executeCommand('maestrun.openEditor');
+  await waitFor(() => vscode.window.tabGroups.activeTabGroup.activeTab?.input.viewType?.endsWith('maestrun.task'));
+  const tabs = () => vscode.window.tabGroups.all.flatMap((group) => group.tabs);
+  const dashboardTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+  const tabCount = tabs().length;
   const running = vscode.commands.executeCommand('maestrun.run');
   const form = await frameWith(browser, '#prompt-form');
   await form.getByRole('heading', { name: /Allow these project plugins/ }).waitFor();
+  assert.equal(tabs().length, tabCount, 'Run reuses the project dashboard');
+  await waitFor(() => vscode.window.tabGroups.activeTabGroup.activeTab === dashboardTab);
+  await vscode.commands.executeCommand('maestrun.openSidebar');
+  await vscode.commands.executeCommand('maestrun.openEditor');
+  assert.equal(tabs().length, tabCount, 'Open in editor preserves the pending Run prompt in the same tab');
+  await waitFor(() => vscode.window.tabGroups.activeTabGroup.activeTab === dashboardTab);
   await form.getByRole('button', { name: 'Yes', exact: true }).click();
   await running;
+  await vscode.commands.executeCommand('maestrun.openSidebar');
+  await vscode.commands.executeCommand('maestrun.openEditor');
+  assert.equal(tabs().length, tabCount, 'Open in editor reuses the tab after Run');
+  await waitFor(() => vscode.window.tabGroups.activeTabGroup.activeTab === dashboardTab);
   const sessionPath = join(folder.uri.fsPath, '.maestrun/session.json');
   await waitFor(async () => (await json(sessionPath))?.status === 'completed');
   await vscode.commands.executeCommand('maestrun.refresh');
@@ -203,6 +219,7 @@ async function checkRun(browser, folder) {
   await writeFile(join(folder.uri.fsPath, 'hold'), '');
   const secondRun = vscode.commands.executeCommand('maestrun.run');
   const secondForm = await frameWith(browser, '#prompt-form');
+  assert.equal(tabs().length, tabCount, 'a repeated Run does not create another tab');
   await secondForm.getByRole('button', { name: 'Yes', exact: true }).click();
   await secondRun;
   await waitFor(async () => (await json(join(folder.uri.fsPath, '.maestrun/run.json')))?.tasks[0].status === 'running');

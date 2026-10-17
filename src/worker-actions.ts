@@ -23,6 +23,8 @@ async function preview(runtime: Runtime, input: Input): Promise<unknown> {
   const tasks = await runtime.call("modules/execution/tasks", "loadTasks", [input.cwd, input.tasksPath]);
   const saved = await runtime.call("config/index", "loadConfig", [input.cwd]);
   if (!Array.isArray(tasks) || !isRecord(saved)) throw new Error("Invalid Maestrun plan response.");
+  if (isRecord(saved.config) && isRecord(saved.config.execution) && saved.config.execution.orchestrator)
+    return previewOrchestration(runtime, { cwd: input.cwd, config: saved.config, tasks });
   const entries = await Promise.all(tasks.map(async (task: unknown) => {
     if (!isRecord(task)) throw new Error("Invalid task definition.");
     const state = saved.config ? await runtime.call("modules/execution/scheduler", "initialTaskState", [saved.config, task])
@@ -32,6 +34,18 @@ async function preview(runtime: Runtime, input: Input): Promise<unknown> {
     return { ...state, definition, instructions: task.instructions, dependsOn: task.dependsOn, target: task.target };
   }));
   return { version: 1, startedAt: "", tasks: entries };
+}
+
+async function previewOrchestration(runtime: Runtime, input: { cwd: string; config: unknown; tasks: unknown[] }): Promise<unknown> {
+  const report = await runtime.call("modules/execution/orchestration-state", "orchestrationReport", [input.cwd, input.config, input.tasks]);
+  if (!isRecord(report) || !Array.isArray(report.tasks) || !isRecord(report.orchestration)
+    || !Array.isArray(report.orchestration.tasks)) throw new Error("Invalid orchestration preview.");
+  const definitions = report.orchestration.tasks;
+  return { ...report, tasks: report.tasks.map((task: unknown) => {
+    if (!isRecord(task)) throw new Error("Invalid orchestrated task.");
+    const definition = definitions.find((entry: unknown) => isRecord(entry) && entry.id === task.id);
+    return isRecord(definition) ? { ...task, instructions: definition.instructions, dependsOn: task.dependsOn ?? definition.dependsOn, target: definition.target } : task;
+  }) };
 }
 
 async function startRun(runtime: Runtime, input: Input): Promise<unknown> {
@@ -80,12 +94,16 @@ async function answerInput(runtime: Runtime, input: Input): Promise<void> {
 async function startSample(runtime: Runtime, input: Input): Promise<unknown> {
   const mode = await input.ui.select("Choose an example", [
     { name: "Simple — 2 sequential tasks: implementation and tests", value: "simple" },
-    { name: "Advanced — 5 tasks: on hold, failure, QA repair and Git integration", value: "advanced" }
+    { name: "Advanced — 5 tasks: on hold, failure, QA repair and Git integration", value: "advanced" },
+    { name: "Orchestrator plan — 6 small tasks, varied steps", value: "orchestrator-plan" },
+    { name: "Orchestrator agent — 6 small tasks, varied steps", value: "orchestrator-agent" }
   ], "simple");
-  if (mode !== "simple" && mode !== "advanced") throw new Error("Invalid example mode.");
+  if (!["simple", "advanced", "orchestrator-plan", "orchestrator-agent"].includes(String(mode))) throw new Error("Invalid example mode.");
   const assignment = await runtime.call("modules/workflow/sample-settings", "selectSampleAssignment", [input]);
   const description = mode === "simple"
     ? "Run the simple example with 2 tasks (Implementation → Tests)?"
+    : mode === "orchestrator-plan" || mode === "orchestrator-agent"
+      ? `Run the ${mode} example with 6 small tasks, varied steps and nested subtasks? Select low effort to minimize usage.`
     : "Run the advanced example with 5 tasks? Answer the simulated approval with continue. One task intentionally fails; the expected final status is Failed after the other four complete.";
   if (!await input.ui.confirm(`${description}\nA separate example folder will be created. Execution uses your selected executor account and consumes its usage.`, false))
     throw await runtime.navigation("CancelError");

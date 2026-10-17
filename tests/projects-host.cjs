@@ -57,14 +57,23 @@ async function checkProjects(browser, folder) {
 
   const running = vscode.commands.executeCommand('maestrun.run');
   form = await sidebarFrame(browser, '#prompt-form', true);
+  const runTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+  const tabCount = vscode.window.tabGroups.all.flatMap((group) => group.tabs).length;
   await form.getByRole('button', { name: 'Yes', exact: true }).click();
   await running;
+  await vscode.commands.executeCommand('maestrun.openSidebar');
+  side = await sidebarFrame(browser);
+  await side.getByRole('button', { name: 'Open in editor', exact: true }).click();
+  await waitFor(() => vscode.window.tabGroups.activeTabGroup.activeTab === runTab);
+  assert.equal(vscode.window.tabGroups.all.flatMap((group) => group.tabs).length, tabCount,
+    'Run from the sidebar and Open in editor share the project tab');
   await waitFor(async () => (await json(join(nested, '.maestrun/session.json')))?.status === 'completed');
   assert.equal(await readFile(join(root, '.maestrun/run.json'), 'utf8'), parentReport, 'subproject execution must not mutate root progress');
   assert.ok((await json(join(nested, '.maestrun/run.json'))).tasks.every((task) => task.status === 'completed'));
   await vscode.commands.executeCommand('maestrun.openConfig');
   assert.equal(vscode.window.activeTextEditor.document.uri.fsPath, join(nested, '.maestrun/config.json'));
 
+  await vscode.commands.executeCommand('maestrun.openSidebar');
   await selectProject(page, fresh);
   side = await sidebarFrame(browser);
   await side.getByRole('heading', { name: 'Start with a plan', exact: true }).waitFor();

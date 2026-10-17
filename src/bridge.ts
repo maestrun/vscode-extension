@@ -10,7 +10,7 @@ export type BridgeOptions = {
 };
 
 export async function runBridge(options: BridgeOptions): Promise<unknown> {
-  if (options.signal?.aborted) throw new Error("Cancelled");
+  if (options.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
   const directory = await runtimeDirectory(options.executable, options.cwd);
   const node = await executablePath(options.node, options.cwd);
   const child = fork(options.worker, [directory, options.action, options.tasksPath, options.taskId ?? "", options.requestId ?? ""], {
@@ -24,6 +24,8 @@ function follow(child: ChildProcess, options: BridgeOptions): Promise<unknown> {
   return new Promise((resolve, reject) => {
     let received = false;
     let failure = "";
+    let cancelled = false;
+    let promptFailure: unknown;
     let result: unknown;
     const abort = (): void => { if (child.connected) child.send({ type: "cancel" }); };
     options.signal?.addEventListener("abort", abort, { once: true });
@@ -34,15 +36,17 @@ function follow(child: ChildProcess, options: BridgeOptions): Promise<unknown> {
       if (!isRecord(message)) return;
       if (message.type === "log" && typeof message.text === "string") options.onLog?.(message.text);
       if (message.type === "result") { received = true; result = message.result; }
-      if (message.type === "failure") failure = `${String(message.message)}${message.nextAction ? `\n${String(message.nextAction)}` : ""}`;
+      if (message.type === "failure") { cancelled = message.cancelled === true; failure = `${String(message.message)}${message.nextAction ? `\n${String(message.nextAction)}` : ""}`; }
       if (message.type === "prompt") void answer(child, message.prompt, options).catch((error: unknown) => {
-        failure = String(error); abort();
+        promptFailure = error; abort();
       });
     });
     child.once("error", reject);
     child.once("close", (code) => {
       options.signal?.removeEventListener("abort", abort);
       if (received && code === 0) resolve(result);
+      else if (promptFailure) reject(promptFailure);
+      else if (cancelled) reject(new DOMException(failure || "Cancelled", "AbortError"));
       else reject(new Error(failure || `Maestrun worker exited with code ${code}. Check the Node.js and Maestrun settings.`));
     });
   });

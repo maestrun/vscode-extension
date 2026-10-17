@@ -1,0 +1,84 @@
+.flow-graph { position: relative; }
+.flow-tree { list-style: none; margin: 0; padding: 0; }
+.flow-branch { position: absolute; width: max-content; }
+.dependency-edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; fill: none; stroke: var(--connector); stroke-width: 1.5; }
+.task-dependencies { margin: 6px 0 0; font-size: 11px; overflow-wrap: anywhere; color: var(--vscode-descriptionForeground); }
+.nested-flow { min-width: 0; --branch-gap: 40px; --sibling-gap: 16px; --connector: var(--vscode-descriptionForeground); }
+.nested-toolbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 8px 0; font-size: 11px; }
+.nested-toolbar [role=group] { display: flex; flex-wrap: wrap; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.nested-toolbar button { padding: 4px 10px; min-height: 28px; font-size: 12px; background: transparent; color: var(--vscode-foreground); }
+.nested-toolbar button:hover { background: var(--vscode-toolbar-hoverBackground); }
+.nested-toolbar button[aria-pressed=true] { background: var(--vscode-list-inactiveSelectionBackground); color: var(--vscode-list-inactiveSelectionForeground, var(--vscode-foreground)); border-color: var(--vscode-contrastActiveBorder, var(--border)); font-weight: 600; }
+.nested-scroll { max-height: 68vh; overflow: auto; overscroll-behavior: auto; border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: var(--surface); }
+.nested-task { width: 220px; flex: none; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--vscode-editor-background); font-size: 12px; }
+.nested-task-title { display: flex; flex-direction: column; gap: 2px; width: 100%; max-width: 420px; padding: 4px; text-align: left; white-space: normal; overflow-wrap: anywhere; background: transparent; color: var(--vscode-foreground); line-height: 1.35; }
+.nested-task-title .task-id { font-size: 10px; }
+.selected-flow,.nested-task:has(> .nested-task-title[aria-pressed=true]) { border-color: #fff; outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 6px #0009, 0 0 20px #ffffff40; background: var(--vscode-list-inactiveSelectionBackground, var(--surface)); }
+.nested-task-title[aria-pressed=true] { background: var(--vscode-list-activeSelectionBackground, var(--vscode-button-background)); color: var(--vscode-list-activeSelectionForeground, var(--vscode-button-foreground)); }
+.nested-task-title[aria-pressed=true] .task-id { color: inherit; }
+.nested-task-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.nested-task.running { border-color: var(--vscode-charts-blue); }
+.nested-task.completed { border-color: var(--vscode-testing-iconPassed, var(--vscode-charts-green)); }
+.nested-task.failed,.nested-task.blocked { border-color: var(--vscode-errorForeground); }
+.nested-task.on_hold { border-color: var(--vscode-charts-orange); }
+.nested-flow[data-mode=tasks] .nested-steps { display: none; }
+.nested-flow[data-mode=steps] .nested-task { width: max-content; min-width: 236px; }
+.nested-steps { margin-top: 8px; border-top: 1px solid var(--border); }
+.nested-steps .flow-help { display: none; }
+.nested-steps .flowchart { display: flex; gap: 28px; padding: 8px; width: max-content; }
+.nested-steps .flowchart.has-repair { padding-block: 20px; }
+.nested-steps .empty-state { padding: 12px; font-size: 12px; }
+.nested-steps .flow-stage { width: 196px; flex: none; }
+.nested-steps .step-heading { flex-direction: column; align-items: flex-start; gap: 4px; }
+.nested-steps .flow-stage[data-direction=right] > .flow-arrow { left: -24px; width: 20px; height: 28px; top: calc(50% - 14px); }
+.nested-steps .flow-stage[data-direction=down] > .flow-arrow { top: -28px; height: 28px; }
+.nested-steps .repair-notice { margin: 8px 0; padding: 6px 8px; font-size: 11px; }
+.nested-scroll:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
+.nested-flow[data-direction=vertical][data-mode=steps] .nested-task { width: 236px; }
+.nested-flow[data-direction=vertical] .nested-steps .flowchart { flex-direction: column; }
+.flow-workspace { padding: 12px; }
+.flow-workspace .flow-selector { margin-bottom: 8px; }
+.flow-layout { gap: 12px; }
+.editor-dashboard .flow-node { padding: 10px; border-radius: 8px; font-size: 12px; line-height: 1.35; }
+.editor-dashboard .flow-node .flow-model,.editor-dashboard .flow-node .flow-tokens { margin-top: 4px; font-size: 11px; }
+.editor-dashboard .flow-node .current-step { margin-top: 4px; }
+.editor-dashboard .flow-node:focus-visible { outline-width: 2px; }
+.editor-dashboard .step-inspector { border: 1px solid var(--border); border-radius: 12px; }
+.editor-dashboard .step-inspector .detail-header { padding: 8px 12px; }
+.editor-dashboard .step-inspector .detail-header h2 { font-size: 16px; margin: 4px 0; }
+.editor-dashboard .step-inspector .execution-properties { gap: 6px 16px; margin-top: 8px; font-size: 11px; }
+.editor-dashboard .step-inspector .execution-properties div { min-width: 80px; }
+.editor-dashboard .step-inspector .detail-actions { margin-top: 8px; }
+.editor-dashboard .step-inspector .detail-actions button { padding: 4px 8px; font-size: 12px; }
+.editor-dashboard .step-inspector pre { line-height: 1.5; margin-top: 4px; }
+.editor-dashboard .step-inspector .step-table td,.editor-dashboard .step-inspector .step-table th { padding: 6px 8px; }
+
+.task-tree-cell { display: flex; align-items: center; min-width: 0; }
+.task-tree-prefix { white-space: pre; flex: none; font-family: var(--vscode-editor-font-family, monospace); color: var(--muted); font-size: 12px; }
+.task-tree-toggle,.task-tree-spacer { display: inline-flex; flex: 0 0 22px; width: 22px; height: 24px; align-items: center; justify-content: center; }
+.task-tree-toggle { padding: 3px; background: transparent; color: var(--vscode-foreground); }
+.task-tree-toggle svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.task-tree-toggle[aria-expanded=true] svg { transform: rotate(90deg); }
+.task-tree-cell .task-select { min-width: 0; flex: 1; }
+[role=treegrid] .task-tree-cell .task-select { white-space: normal; }
+.editor-dashboard .step-inspector > button { margin: 4px 8px 0; font-size: 11px; }
+.editor-dashboard .step-inspector .step-detail-header { display: grid; grid-template-areas: "context actions" "title actions" "subtitle actions" "metadata metadata"; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 6px 10px; }
+.step-detail-header .task-topline { grid-area: context; font-size: 10px; }
+.step-detail-header h2 { grid-area: title; }
+.step-detail-header > p { grid-area: subtitle; font-size: 11px; }
+.step-detail-header .execution-properties { grid-area: metadata; }
+.step-detail-header .detail-actions { grid-area: actions; align-self: center; }
+.editor-dashboard .step-inspector .step-detail-header h2 { font-size: 14px; margin: 0; }
+.editor-dashboard .step-inspector .step-detail-header .execution-properties { margin-top: 4px; gap: 4px 12px; }
+.step-detail-header .execution-properties div { display: flex; align-items: baseline; gap: 4px; }
+.editor-dashboard .step-inspector .step-detail-header .execution-properties div { min-width: 0; }
+.step-detail-header .execution-properties dd { margin: 0; }
+.editor-dashboard .step-inspector .step-detail-header .detail-actions { margin: 0; }
+.editor-dashboard .step-inspector .detail-body { padding: 6px 10px 10px; }
+.editor-dashboard .step-inspector .detail-section { margin-top: 8px; }
+.editor-dashboard .step-inspector .message { padding: 6px 0; }
+.editor-dashboard .step-inspector .empty-state { padding: 8px 0; text-align: left; }
+.editor-dashboard .step-inspector .empty-state p { margin: 4px 0; max-width: none; }
+@media (max-width: 520px) {
+  .editor-dashboard .step-inspector .step-detail-header { grid-template-areas: "context" "title" "subtitle" "metadata" "actions"; grid-template-columns: minmax(0, 1fr); }
+}
