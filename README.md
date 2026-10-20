@@ -62,3 +62,11 @@ With an orchestrator plan or agent run, **Flowchart** shows the main task on the
 The task table displays the same hierarchy as a directory tree, with collapsible branches. Sorting keeps children with their parents; filters retain ancestors to show where matches belong.
 
 The extension reads `orchestration`, `dependsOn`, `parentId`, and per-task steps from the CLI report. Markdown plans use `Parent` and `Steps`; generated agent tasks remain visible when progress updates. **Run example** includes `orchestrator-plan` and `orchestrator-agent` (requires CLI 0.1.1 or later). Expanding or navigating diagrams makes no model calls.
+
+## Choose tasks for the current run
+
+**Run / resume** defaults to **All** unfinished tasks. Select **Choose tasks for this run** to check only the tasks you want to execute now. Completed tasks remain visible in gray with **(completed)** and cannot be selected again. Unchecked tasks keep their progress for later; the next run defaults to All again. Include unfinished dependencies in your selection, or finish them first.
+
+The same selection reaches the background worker. With orchestration, a selected run executes the chosen existing tasks without generating additional work; choose All later to resume coordination. Parallel execution supports a parent folder without Git containing multiple repositories, using a separate set of child worktrees per task. Update the Maestrun CLI together with this extension to use these features.
+
+Orchestrator setup also offers **Default orchestrator effort (agents can override)**. Change it later in the workflow table’s **Planning → Effort** field. Tasks and agents without an explicit effort inherit it when supported by their executor; an agent’s own effort takes priority.

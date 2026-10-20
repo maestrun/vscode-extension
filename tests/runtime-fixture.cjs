@@ -18,7 +18,7 @@ async function fixture(t) {
     const previous = process.env.PATH;
     if (action === 'configure' || action === 'start') process.env.PATH = `${bin}:${previous}`;
     try { return await runBridge({ cwd, action, executable, node: process.execPath,
-      tasksPath: 'plan.md', worker: resolve(__dirname, '../dist/bridge-worker.js'), ...options }); }
+      onPrompt: async () => ({ value: 'all' }), tasksPath: 'plan.md', worker: resolve(__dirname, '../dist/bridge-worker.js'), ...options }); }
     finally { process.env.PATH = previous; }
   };
   t.after(async () => {

@@ -190,6 +190,7 @@ async function checkRun(browser, folder) {
   const tabCount = tabs().length;
   const running = vscode.commands.executeCommand('maestrun.run');
   const form = await frameWith(browser, '#prompt-form');
+  await selectRunTasks(form, ['task-1']);
   await form.getByRole('heading', { name: /Allow these project plugins/ }).waitFor();
   assert.equal(tabs().length, tabCount, 'Run reuses the project dashboard');
   await waitFor(() => vscode.window.tabGroups.activeTabGroup.activeTab === dashboardTab);
@@ -205,6 +206,8 @@ async function checkRun(browser, folder) {
   await waitFor(() => vscode.window.tabGroups.activeTabGroup.activeTab === dashboardTab);
   const sessionPath = join(folder.uri.fsPath, '.maestrun/session.json');
   await waitFor(async () => (await json(sessionPath))?.status === 'completed');
+  assert.deepEqual((await json(join(folder.uri.fsPath, '.maestrun/run.json'))).tasks.map(task => task.status), ['completed', 'pending']);
+  await finishSelectedRun(browser, folder);
   await vscode.commands.executeCommand('maestrun.refresh');
   const dashboard = await frameWith(browser, '#task-filter');
   await dashboard.locator('.task-row').first().waitFor();
@@ -220,6 +223,8 @@ async function checkRun(browser, folder) {
   const secondRun = vscode.commands.executeCommand('maestrun.run');
   const secondForm = await frameWith(browser, '#prompt-form');
   assert.equal(tabs().length, tabCount, 'a repeated Run does not create another tab');
+  await secondForm.getByRole('heading', { name: 'Run tasks', exact: true }).waitFor();
+  await secondForm.getByRole('button', { name: 'Continue', exact: true }).click();
   await secondForm.getByRole('button', { name: 'Yes', exact: true }).click();
   await secondRun;
   await waitFor(async () => (await json(join(folder.uri.fsPath, '.maestrun/run.json')))?.tasks[0].status === 'running');
@@ -281,3 +286,33 @@ async function checkMissingCli(browser, folder) {
 }
 
 module.exports = { run };
+
+async function selectRunTasks(form, ids, completed = false) {
+  await form.getByRole('heading', { name: 'Run tasks', exact: true }).waitFor();
+  assert.match(await form.locator('.choice:has(input:checked)').innerText(), /All/);
+  await form.locator('.choice').filter({ hasText: 'Choose tasks for this run' }).click();
+  await form.getByRole('button', { name: 'Continue', exact: true }).click();
+  await form.getByRole('heading', { name: /Tasks for this run/ }).waitFor();
+  const choices = form.locator('.choice');
+  for (let i = 0; i < await choices.count(); i++) {
+    const row = choices.nth(i), input = row.locator('input');
+    if (await input.isDisabled()) continue;
+    await input.setChecked(ids.includes((await row.innerText()).split(':')[0]));
+  }
+  if (completed) {
+    const row = form.locator('.choice').filter({ hasText: 'task-1:' });
+    assert.ok(await row.locator('input').isDisabled());
+    assert.match(await row.innerText(), /\(completed\)/);
+    await form.page().screenshot({ path: resolve(__dirname, '../.vscode-test/task-selection.png') });
+  }
+  await form.getByRole('button', { name: 'Continue', exact: true }).click();
+}
+
+async function finishSelectedRun(browser, folder) {
+  const running = vscode.commands.executeCommand('maestrun.run');
+  const form = await frameWith(browser, '#prompt-form');
+  await selectRunTasks(form, ['task-2'], true);
+  await form.getByRole('button', { name: 'Yes', exact: true }).click();
+  await running;
+  await waitFor(async () => (await json(join(folder.uri.fsPath, '.maestrun/session.json')))?.status === 'completed');
+}

@@ -59,6 +59,8 @@ async function checkProjects(browser, folder) {
   form = await sidebarFrame(browser, '#prompt-form', true);
   const runTab = vscode.window.tabGroups.activeTabGroup.activeTab;
   const tabCount = vscode.window.tabGroups.all.flatMap((group) => group.tabs).length;
+  await form.getByRole('heading', { name: 'Run tasks', exact: true }).waitFor();
+  await form.getByRole('button', { name: 'Continue', exact: true }).click();
   await form.getByRole('button', { name: 'Yes', exact: true }).click();
   await running;
   await vscode.commands.executeCommand('maestrun.openSidebar');

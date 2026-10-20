@@ -5,7 +5,7 @@ import { Runtime } from "./runtime";
 import { createWorkerUi } from "./worker-ui";
 import { editWorkflow } from "./workflow-editor";
 
-type Input = { taskId?: string; requestId?: string; cwd: string; tasksPath: string; signal: AbortSignal; ui: ReturnType<typeof createWorkerUi> };
+type Input = { only?: readonly string[]; taskId?: string; requestId?: string; cwd: string; tasksPath: string; signal: AbortSignal; ui: ReturnType<typeof createWorkerUi> };
 
 export async function performAction(runtime: Runtime, action: string, input: Input): Promise<unknown> {
   if (action === "answerInput") return answerInput(runtime, input);
@@ -14,7 +14,14 @@ export async function performAction(runtime: Runtime, action: string, input: Inp
   if (action === "start" || action === "configure") return editWorkflow(runtime, input, action === "start");
   if (action === "plan") return runtime.call("modules/planning/create-plan", "createPlan", [input]);
   if (action === "sample") return startSample(runtime, input);
-  if (action === "run") return startRun(runtime, input);
+  if (action === "run") {
+    const session = await runtime.call("modules/execution/run-session.repository", "readSession", [input.cwd]);
+    if (isRecord(session) && session.status === "running") return startRun(runtime, input);
+    const only = await runtime.call("modules/execution/choose-run-tasks", "chooseRunTasks", [input]);
+    if (only !== undefined && (!Array.isArray(only) || !only.every((id) => typeof id === "string")))
+      throw new Error("Invalid task selection. Update the Maestrun CLI and retry.");
+    return startRun(runtime, { ...input, ...(only ? { only } : {}) });
+  }
   if (action === "cancel") return cancelRun(runtime, input.cwd);
   throw new Error(`Unknown action: ${action}`);
 }
@@ -63,7 +70,7 @@ async function startRun(runtime: Runtime, input: Input): Promise<unknown> {
     if (!trustPlugins) throw await runtime.navigation("CancelError");
   }
   if (input.signal.aborted) throw await runtime.navigation("CancelError");
-  return runtime.call("modules/execution/start-run-session", "startRunSession", [input.cwd, input.tasksPath, trustPlugins]);
+  return runtime.call("modules/execution/start-run-session", "startRunSession", [input.cwd, input.tasksPath, { trustPlugins, ...(input.only ? { only: input.only } : {}) }]);
 }
 
 async function cancelRun(runtime: Runtime, cwd: string): Promise<unknown> {

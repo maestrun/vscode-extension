@@ -44,6 +44,7 @@ test('executes and resumes real Maestrun tasks without a terminal', options, asy
   const { cwd, invoke } = await fixture(t);
   let consent = false;
   const result = await invoke('run', { onPrompt: async (prompt) => {
+    if (prompt.title === 'Run tasks') { assert.equal(prompt.initial, 'all'); return { value: 'all' }; }
     consent = true; assert.equal(prompt.kind, 'confirm'); return { value: true };
   } });
   assert.equal(result.status, 'running');
@@ -54,14 +55,14 @@ test('executes and resumes real Maestrun tasks without a terminal', options, asy
   const merged = mergePlan(parseReport(await invoke('preview')), parseReport(report));
   assert.equal(merged.tasks[0].status, 'completed');
   assert.match(merged.tasks[0].instructions, /verify/);
-  await invoke('run', { onPrompt: async () => ({ value: true }) });
+  await invoke('run', { onPrompt: async (prompt) => ({ value: prompt.title === "Run tasks" ? "all" : true }) });
   await waitFor(async () => (await json(join(cwd, '.maestrun/session.json')))?.status === 'completed');
 });
 
 test('cancels a live background execution using the session protocol', options, async (t) => {
   const { cwd, invoke } = await fixture(t);
   await writeFile(join(cwd, 'hold'), '');
-  await invoke('run', { onPrompt: async () => ({ value: true }) });
+  await invoke('run', { onPrompt: async (prompt) => ({ value: prompt.title === "Run tasks" ? "all" : true }) });
   await waitFor(async () => (await json(join(cwd, '.maestrun/run.json')))?.tasks[0].status === 'running');
   await invoke('cancel');
   await waitFor(async () => (await json(join(cwd, '.maestrun/session.json')))?.status === 'cancelled');
@@ -70,7 +71,7 @@ test('cancels a live background execution using the session protocol', options, 
 
 test('rejects changed task definitions and malformed plans without replacing progress', options, async (t) => {
   const { cwd, invoke } = await fixture(t);
-  await invoke('run', { onPrompt: async () => ({ value: true }) });
+  await invoke('run', { onPrompt: async (prompt) => ({ value: prompt.title === "Run tasks" ? "all" : true }) });
   await waitFor(async () => (await json(join(cwd, '.maestrun/session.json')))?.status === 'completed');
   const saved = await json(join(cwd, '.maestrun/run.json'));
   const plan = await readFile(join(cwd, 'plan.md'), 'utf8');
