@@ -17,6 +17,7 @@ export async function performAction(runtime: Runtime, action: string, input: Inp
   if (action === "run") {
     const session = await runtime.call("modules/execution/run-session.repository", "readSession", [input.cwd]);
     if (isRecord(session) && session.status === "running") return startRun(runtime, input);
+    await runtime.call("modules/execution/choose-workspace-repositories", "chooseWorkspaceRepositories", [input]);
     const only = await runtime.call("modules/execution/choose-run-tasks", "chooseRunTasks", [input]);
     if (only !== undefined && (!Array.isArray(only) || !only.every((id) => typeof id === "string")))
       throw new Error("Invalid task selection. Update the Maestrun CLI and retry.");
