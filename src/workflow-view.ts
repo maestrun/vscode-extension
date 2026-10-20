@@ -27,7 +27,7 @@ function promptHtml(prompt: Prompt): string {
     const checked = Array.isArray(prompt.initial) ? prompt.initial.includes(choice.value) : prompt.initial === choice.value;
     return `<label class="choice"><input name="choice" type="${prompt.kind === "checkbox" ? "checkbox" : "radio"}"
       value="${index}" ${checked ? "checked" : ""} ${choice.disabled ? "disabled" : ""}>
-      <span>${escapeHtml(choice.name)}${choice.disabled ? ` — ${escapeHtml(choice.disabled)}` : ""}</span></label>`;
+      <span>${escapeHtml(choice.name)}${choice.disabled ? ` (${escapeHtml(choice.disabled)})` : ""}</span></label>`;
   }).join("");
   const text = typeof prompt.initial === "string" ? escapeHtml(prompt.initial) : "";
   const inputs: Record<string, string> = {
@@ -37,7 +37,7 @@ function promptHtml(prompt: Prompt): string {
     paste: `<textarea id="answer" name="answer" autocomplete="off" rows="14" aria-label="${escapeHtml(prompt.title)}" placeholder="${prompt.context ? "Your answer…" : "Requirements, acceptance criteria, and verification…"}">${text}</textarea>`,
     confirm: `<p>Choose an answer to continue.</p>`
   };
-  inputs.table = `<button type="button" id="refresh-models">Refresh models</button><p class="muted">Models come from installed, available CLIs. Effort options follow the selected model. Saved unavailable values are preserved until you replace them.</p><p>Existing settings are kept unless you change them. Add a row for each new step; planning is required.</p>
+  inputs.table = `<button type="button" id="refresh-models">Refresh models</button><p class="muted">Models come from installed, available CLIs. Effort options follow the selected model. Saved unavailable values are preserved until you replace them.</p><p>In Orchestrator mode, Planning effort is the default for tasks and agents without their own effort. An agent’s effort overrides this default.</p><p>Existing settings are kept unless you change them. Add a row for each new step; planning is required.</p>
     <div class="workflow-table-scroll" role="region" aria-label="Workflow steps" tabindex="0"><table id="workflow-table">
       <caption>Steps run from top to bottom</caption><thead><tr><th scope="col"><span class="sr-only">Reorder</span></th><th scope="col">Step</th><th scope="col">Executor</th><th scope="col">Model</th><th scope="col">Effort</th><th scope="col">Instruction file (optional)</th><th scope="col">Actions</th></tr></thead><tbody></tbody></table></div>
     <p id="reorder-status" class="muted" role="status">Drag the row handle to reorder steps, or use the Move buttons. Planning stays first.</p><button type="button" id="add-step">Add step</button><p class="muted">Use a built-in name (implementation, testing, qa, review) or your own name. Custom instruction files must already exist at .maestrun/steps/name.md.</p>

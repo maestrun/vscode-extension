@@ -131,7 +131,7 @@ require('node:readline').createInterface({input: process.stdin}).on('line', line
     : { status: 'needs_input', question: 'Continue?', summary: 'Waiting for approval' }) } } });
   emit({ method: 'turn/completed', params: { turn: { status: 'completed' } } });
 });`);
-  await invoke('run', { onPrompt: async () => ({ value: true }) });
+  await invoke('run', { onPrompt: async (prompt) => ({ value: prompt.title === "Run tasks" ? "all" : true }) });
   for (const id of ['task-1', 'task-2']) {
     await waitFor(async () => (await readReport(cwd))?.tasks.find(task => task.id === id)?.status === 'on_hold');
     const task = (await readReport(cwd)).tasks.find(task => task.id === id);

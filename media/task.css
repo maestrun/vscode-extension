@@ -127,7 +127,8 @@ dt { color: var(--muted); } dd { margin: 0; overflow-wrap: anywhere; }
 #prompt textarea { min-height: 180px; }
 #prompt section { margin: 20px 0; }
 .choice { display: flex; align-items: baseline; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 5px; margin: 6px 0; cursor: pointer; }
-.choice:hover { background: var(--vscode-list-hoverBackground); }
+.choice:has(input:disabled) { color: var(--vscode-disabledForeground); cursor: default; }
+.choice:not(:has(input:disabled)):hover { background: var(--vscode-list-hoverBackground); }
 .choice:has(input:checked) { border-color: var(--vscode-focusBorder); background: var(--vscode-list-inactiveSelectionBackground); }
 .workflow > section { margin-top: 32px; }
 .workflow:has(#workflow-table) { max-width: 1200px; }
